@@ -68,7 +68,7 @@ jobs:
             git add .
             git commit -am "Update version of helloworld-go image in dev"
             git push --set-upstream origin "feat/pr-$IMAGE_TAG"
-            gh pr create -B main -H "feat/pr-$IMAGE_TAG" --title "Merge PR $IMAGE_TAG into app' --body 'Created by Github action"
+            gh pr create -B main -H "feat/pr-$IMAGE_TAG" --title "Merge PR $IMAGE_TAG into app" --body "Created by Github action"
           env:
             GITHUB_TOKEN: ${{ secrets.PAT }}
             IMAGE_TAG: ${{ needs.push_to_registry.outputs.TAG }}
