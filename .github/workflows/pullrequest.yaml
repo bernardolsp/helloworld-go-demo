@@ -39,44 +39,35 @@ jobs:
           push: true
           tags: devlopesbernardo/hello-world-go:pr-${{env.image_version}}
 
-  #     - name: Log in to Docker Hub
-  #       uses: docker/login-action@v1 
-  #       with:
-  #         username: ${{ secrets.DOCKER_HUB_USERNAME }}
-  #         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-
-  #     - name: Build and push Docker image
-  #       uses: docker/build-push-action@v2
-  #       with:
-  #         context: .
-  #         push: true
-  #         tags: devlopesbernardo/hello-world-go:${{env.image_version}}
           
-  # deploy_dev:
-  #     name: Deploys to development environment
-  #     runs-on: ubuntu-latest
-  #     needs: [push_to_registry]
-  #     steps:
+  deploy_dev:
+      name: Deploys to development environment
+      runs-on: ubuntu-latest
+      needs: [push_to_registry]
+      steps:
 
-  #       - name: Checkout the other repository
-  #         uses: actions/checkout@v2
-  #         with:
-  #           repository: 'bernardolsp/aulao-pipeline' # replace with your repository
-  #           token: ${{ secrets.PAT }} # use the PAT you saved as a secret
-  #           path: 'aulao-pipeline' # this is the directory where the other repo will be checked out
+        - name: Checkout the other repository
+          uses: actions/checkout@v2
+          with:
+            repository: 'bernardolsp/aulao-pipeline' # replace with your repository
+            token: ${{ secrets.PAT }} # use the PAT you saved as a secret
+            path: 'aulao-pipeline' # this is the directory where the other repo will be checked out
             
-  #       - name: Run sed on the other repository
-  #         env:
-  #           IMAGE_TAG: ${{ needs.push_to_registry.outputs.TAG }}
-  #         run: |
-  #           sed -i "/^ *image:/s|.*|  image: devlopesbernardo/hello-world-go:$IMAGE_TAG|" ./aulao-pipeline/dev/helloworld-docker/helm/values.yaml
+        - name: Run sed on the other repository
+          env:
+            IMAGE_TAG: ${{ needs.push_to_registry.outputs.TAG }}
+          run: |
+            sed -i "/^ *image:/s|.*|  image: devlopesbernardo/hello-world-go:$IMAGE_TAG|" ./aulao-pipeline/dev/helloworld-docker/helm/values.yaml
 
-  #       - name: Commit and push changes
-  #         run: |
-  #           cd aulao-pipeline
-  #           git config --local user.email "action@github.com"
-  #           git config --local user.name "GitHub Action"
-  #           git add .
-  #           git commit -am "Update version of helloworld-go image in dev"
-  #           git push
-    
+        - name: Commit and push changes
+          run: |
+            cd aulao-pipeline
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git checkout -b "feat/pr-$IMAGE_TAG"
+            git add .
+            git commit -am "Update version of helloworld-go image in dev"
+            git push
+            gh pr create -B main -H "feat/pr-$IMAGE_TAG" --title 'Merge PR $IMAGE_TAG into app' --body 'Created by Github action'
+          env:
+            GITHUB_TOKEN: ${{ secrets.PAT }}
