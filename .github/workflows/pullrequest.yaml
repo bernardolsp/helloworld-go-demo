@@ -57,7 +57,7 @@ jobs:
           env:
             IMAGE_TAG: ${{ needs.push_to_registry.outputs.TAG }}
           run: |
-            sed -i "/^ *image:/s|.*|  image: devlopesbernardo/hello-world-go:$IMAGE_TAG|" ./aulao-pipeline/dev/helloworld-docker/helm/values.yaml
+            sed -i "/^ *image:/s|.*|  image: devlopesbernardo/hello-world-go:pr-$IMAGE_TAG|" ./aulao-pipeline/dev/helloworld-docker/helm/values.yaml
 
         - name: Commit and push changes
           run: |
@@ -68,7 +68,7 @@ jobs:
             git add .
             git commit -am "Update version of helloworld-go image in dev"
             git push --set-upstream origin "feat/pr-$IMAGE_TAG"
-            gh pr create -B main -H "feat/pr-$IMAGE_TAG" --title 'Merge PR $IMAGE_TAG into app' --body 'Created by Github action'
+            gh pr create -B main -H "feat/pr-$IMAGE_TAG" --title "Merge PR $IMAGE_TAG into app' --body 'Created by Github action"
           env:
             GITHUB_TOKEN: ${{ secrets.PAT }}
             IMAGE_TAG: ${{ needs.push_to_registry.outputs.TAG }}
