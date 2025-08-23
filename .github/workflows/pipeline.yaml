@@ -39,4 +39,3 @@ jobs:
           # We also add a 'latest' tag, which is a common convention for the most recent release.
           tags: |
             devlopesbernardo/hello-world-go:${{ github.ref_name }}
-            devlopesbernardo/hello-world-go:latest
