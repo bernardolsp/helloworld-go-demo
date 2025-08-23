@@ -1,93 +1,42 @@
-name: Push Docker image
+# This workflow is triggered when a new Git tag is pushed to the repository.
+name: Push Docker image on new tag
 
 on:
   push:
-    branches: [ main ]
+    # This section configures the trigger to run only for pushed tags.
+    # The '*' is a wildcard that matches any tag name (e.g., 1.0.0, v2.1.0, etc.).
+    tags:
+      - '*'
 
 jobs:
   push_to_registry:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
-    outputs:
-      TAG: ${{ steps.vars.outputs.TAG }}
     steps:
+      # Step 1: Check out the repository's code so the workflow can access it.
       - name: Check out the repo
         uses: actions/checkout@v2
 
-      - name: Set outputs
-        id: vars
-        run: |
-          echo "image_version=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          echo "image_name=devlopesbernardo/hello-world-go" >> $GITHUB_ENV
-          image_tag=$(git rev-parse --short HEAD)
-          echo TAG=$image_tag >> $GITHUB_OUTPUT
-          echo devlopesbernardo/hello-world-go:$image_tag
-
+      # Step 2: Log in to Docker Hub using secrets stored in your repository settings.
+      # This is required to push images to your Docker Hub account.
       - name: Log in to Docker Hub
-        uses: docker/login-action@v1 
+        uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
+      # Step 3: This is a powerful action that handles both building and pushing the image.
+      # It uses the Git tag from the push event to tag the Docker image.
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
         with:
+          # 'context: .' tells the action to use the Dockerfile in the root of the repository.
           context: .
+          # 'push: true' instructs the action to push the image after a successful build.
           push: true
-          tags: devlopesbernardo/hello-world-go:${{env.image_version}}
-          
-  deploy_dev:
-      name: Deploys to development environment
-      runs-on: ubuntu-latest
-      needs: [push_to_registry]
-      steps:
-
-        - name: Checkout the other repository
-          uses: actions/checkout@v2
-          with:
-            repository: 'bernardolsp/aulao-pipeline' # replace with your repository
-            token: ${{ secrets.PAT }} # use the PAT you saved as a secret
-            path: 'aulao-pipeline' # this is the directory where the other repo will be checked out
-            
-        - name: Run sed on the other repository
-          env:
-            IMAGE_TAG: ${{ needs.push_to_registry.outputs.TAG }}
-          run: |
-            sed -i "/^ *image:/s|.*|  image: devlopesbernardo/hello-world-go:$IMAGE_TAG|" ./aulao-pipeline/dev/helloworld-docker/helm/values.yaml
-
-        - name: Commit and push changes
-          run: |
-            cd aulao-pipeline
-            git config --local user.email "action@github.com"
-            git config --local user.name "GitHub Action"
-            git add .
-            git commit -am "Update version of helloworld-go image in dev"
-            git push
-    
-  deploy_prod:
-        name: Deploys to prod environment
-        runs-on: ubuntu-latest
-        environment: prod
-        needs: [push_to_registry, deploy_dev]
-        steps:
-
-        - name: Checkout the other repository
-          uses: actions/checkout@v2
-          with:
-            repository: 'bernardolsp/aulao-pipeline' # replace with your repository
-            token: ${{ secrets.PAT }} # use the PAT you saved as a secret
-            path: 'aulao-pipeline' # this is the directory where the other repo will be checked out
-            
-        - name: Run sed on the other repository
-          env:
-            IMAGE_TAG: ${{ needs.push_to_registry.outputs.TAG }}
-          run: |
-            sed -i "/^ *image:/s|.*|  image: devlopesbernardo/hello-world-go:$IMAGE_TAG|" ./aulao-pipeline/prd/helloworld-docker/helm/values.yaml
-        - name: Commit and push changes
-          run: |
-            cd aulao-pipeline
-            git config --local user.email "action@github.com"
-            git config --local user.name "GitHub Action"
-            git add .
-            git commit -am "Update version of helloworld-go image in prd"
-            git push
+          # 'tags:' defines the tags for the Docker image.
+          # We use github.ref_name which automatically contains the name of the tag that triggered the workflow.
+          # We also add a 'latest' tag, which is a common convention for the most recent release.
+          tags: |
+            devlopesbernardo/hello-world-go:${{ github.ref_name }}
+            devlopesbernardo/hello-world-go:latest
